@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bulk Image Tools - Convert & Resize</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+	<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.5/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .preview-box {
+            text-align: center;
+            max-width: 150px;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        html,
+        body {
+            overflow-x: hidden;
+        }
+
+        body {
+            padding-top: 56px;
+            font-family: 'Roboto', monospace;
+        }
+
+        @media (max-width: 991.98px) {
+            .offcanvas-collapse {
+                position: fixed;
+                top: 56px;
+                bottom: 0;
+                left: 100%;
+                width: 100%;
+                padding-right: 1rem;
+                padding-left: 1rem;
+                overflow-y: auto;
+                visibility: hidden;
+                background-color: #343a40;
+                transition: transform .3s ease-in-out, visibility .3s ease-in-out;
+            }
+
+            .offcanvas-collapse.open {
+                visibility: visible;
+                transform: translateX(-100%);
+            }
+        }
+
+        .nav-scroller {
+            position: relative;
+            z-index: 2;
+            height: 2.75rem;
+            overflow-y: hidden;
+        }
+
+        .nav-scroller .nav {
+            display: flex;
+            flex-wrap: nowrap;
+            padding-bottom: 1rem;
+            margin-top: -1px;
+            overflow-x: auto;
+            color: rgba(255, 255, 255, .75);
+            text-align: center;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-underline .nav-link {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: .875rem;
+            color: #6c757d;
+        }
+
+        .nav-underline .nav-link:hover {
+            color: #007bff;
+        }
+
+        .nav-underline .active {
+            font-weight: 500;
+            color: #343a40;
+        }
+
+        .text-white-50 {
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .card {
+            background-color: transparent !important;
+        }
+
+        .btn {
+            border-radius: 0;
+        }
+
+        .form-control {
+            border-radius: 0;
+        }
+
+        .form-select {
+            border-radius: 0;
+        }
+
+		#previewContainer {
+		    max-height: 500px;
+		    overflow-y: auto;
+		}
+
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark" aria-label="Main navigation">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="">INDRAGTG</a>
+        </div>
+    </nav>
+
+    <div class="nav-scroller bg-body shadow-sm">
+        <nav class="nav nav-underline" aria-label="Secondary navigation">
+            <a class="nav-link active" aria-current="page" href="#" id="convert-tab" data-bs-toggle="tab" data-bs-target="#convert">Convert Format</a>
+        </nav>
+    </div>
+
+    <main class="container mt-5">
+        <div class="row p-3">
+            <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="imageInputConvert" class="form-label">Upload Images</label>
+                        <input type="file" class="form-control" id="imageInput" multiple accept="image/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="formatSelect" class="form-label">Convert to Format</label>
+                        <select class="form-select" id="formatSelect">
+                            <option value="image/png">PNG</option>
+                            <option value="image/jpeg">JPG</option>
+                        </select>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="toggleAdvancedOptions">
+                        <label class="form-check-label" for="toggleAdvancedOptions">Show Advanced Options</label>
+                    </div>
+
+                    <div id="advancedOptions" class="d-none">
+                        <div class="mb-3">
+                            <label for="resizeMode" class="form-label">Resize Mode</label>
+                            <select class="form-select" id="resizeMode">
+                            	<option value="">Original Size</option>
+                                <option value="Pixel">Exact Pixel</option>
+                                <option value="ratio">Aspect Ratio</option>
+                            </select>
+                        </div>
+				        <div id="pixelOptions" class="d-none">
+				            <div class="row">
+				                <div class="col-md-6 mb-3">
+				                    <label for="resizeWidth" class="form-label">Width (px)</label>
+				                    <input type="number" id="resizeWidth" class="form-control">
+				                </div>
+				                <div class="col-md-6 mb-3">
+				                    <label for="resizeHeight" class="form-label">Height (px)</label>
+				                    <input type="number" id="resizeHeight" class="form-control">
+				                </div>
+				            </div>
+				        </div>
+
+				        <div id="aspectRatioOptions" class="d-none mb-3">
+				            <label for="aspectRatio" class="form-label">Aspect Ratio (e.g. 16:9)</label>
+				            <input type="text" id="aspectRatio" class="form-control">
+				        </div>
+                        <div class="mb-3">
+                            <label for="imageQuality" class="form-label">Drop Quality (JPEG/PNG, 0–100)</label>
+                            <input type="number" class="form-control" id="imageQuality" min="0" max="100" value="92">
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-dark" id="convertBtn">
+                            <span id="convertBtnText">Convert All</span>
+                        </button>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button id="downloadAllBtn" class="btn btn-secondary d-none">Download All</button>
+                    </div>
+                    <div class="progress mb-3 d-none" id="progressWrapper">
+                        <div id="progressBar" class="progress-bar bg-dark" role="progressbar" style="width: 0%; border-radius: 0;">0%</div>
+                    </div>
+
+                    <div class="row" id="previewContainer"></div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+    <canvas id="canvas"></canvas>
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script src="assets/js/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.5/dist/sweetalert2.all.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+	<script>
+	const imageInput = document.getElementById('imageInput');
+	const formatSelect = document.getElementById('formatSelect');
+	const convertBtn = document.getElementById('convertBtn');
+	const downloadAllBtn = document.getElementById('downloadAllBtn');
+	const previewContainer = document.getElementById('previewContainer');
+	const progressWrapper = document.getElementById('progressWrapper');
+	const progressBar = document.getElementById('progressBar');
+	const resizeMode = document.getElementById('resizeMode');
+	const pixelOptions = document.getElementById('pixelOptions');
+	const aspectRatioOptions = document.getElementById('aspectRatioOptions');
+	const toggleAdvancedOptions = document.getElementById('toggleAdvancedOptions');
+	const imageQualityInput = document.getElementById('imageQuality');
+
+	let convertedImages = [];
+
+	toggleAdvancedOptions.addEventListener('change', function () {
+	    document.getElementById('advancedOptions').classList.toggle('d-none', !this.checked);
+	});
+
+	resizeMode.addEventListener('change', function () {
+	    const mode = this.value;
+
+	    const resetInputs = () => {
+	        document.getElementById('resizeWidth').value = '';
+	        document.getElementById('resizeHeight').value = '';
+	        document.getElementById('aspectRatio').value = '';
+	    };
+
+	    if (mode === 'Pixel') {
+	        pixelOptions.classList.remove('d-none');
+	        aspectRatioOptions.classList.add('d-none');
+	        document.getElementById('aspectRatio').value = '';
+	    } else if (mode === 'ratio') {
+	        aspectRatioOptions.classList.remove('d-none');
+	        pixelOptions.classList.add('d-none');
+	        document.getElementById('resizeWidth').value = '';
+	        document.getElementById('resizeHeight').value = '';
+	    } else {
+	        pixelOptions.classList.add('d-none');
+	        aspectRatioOptions.classList.add('d-none');
+	        resetInputs();
+	    }
+	});
+
+	function processFinalBlob(blob, file, format, zip, totalFiles) {
+	    const outputName = file.name.replace(/\.[^/.]+$/, '') + (format === 'image/jpeg' ? '.jpg' : '.png');
+	    zip.file(outputName, blob);
+
+	    const thumb = document.createElement('div');
+	    thumb.classList.add('col-md-2', 'mb-3', 'preview-box');
+
+	    const imgElem = document.createElement('img');
+	    imgElem.src = URL.createObjectURL(blob);
+	    imgElem.classList.add('img-fluid', 'border');
+
+	    const downloadBtn = document.createElement('button');
+	    downloadBtn.className = 'btn btn-sm btn-outline-dark mt-2';
+	    downloadBtn.textContent = 'Download';
+	    downloadBtn.onclick = () => {
+	        const link = document.createElement('a');
+	        link.href = imgElem.src;
+	        link.download = outputName;
+	        document.body.appendChild(link);
+	        link.click();
+	        document.body.removeChild(link);
+	    };
+
+	    thumb.appendChild(imgElem);
+	    thumb.appendChild(downloadBtn);
+	    previewContainer.appendChild(thumb);
+
+	    convertedImages.push({ name: outputName, blob });
+
+	    const progress = Math.round((convertedImages.length / totalFiles) * 100);
+	    progressBar.style.width = `${progress}%`;
+	    progressBar.innerText = `${convertedImages.length}/${totalFiles}`;
+
+	    if (convertedImages.length === totalFiles) {
+	        downloadAllBtn.classList.remove('d-none');
+	    }
+	}
+
+	// Modifikasi pada proses konversi
+	convertBtn.addEventListener('click', async () => {
+	    const files = imageInput.files;
+	    if (!files.length) {
+	        return Swal.fire({
+	            icon: 'warning',
+	            title: 'No Files Selected',
+	            text: 'Please select images first.',
+	            confirmButtonText: 'OK',
+	            customClass: {
+	                confirmButton: 'btn btn-dark'
+	            },
+	            buttonsStyling: false,
+	            allowOutsideClick: false
+	        });
+	    }
+
+	    convertedImages = [];
+	    previewContainer.innerHTML = '';
+	    progressWrapper.classList.remove('d-none');
+	    progressBar.style.width = '0%';
+	    progressBar.innerText = '0%';
+	    downloadAllBtn.classList.add('d-none');
+
+	    const zip = new JSZip();
+	    const format = formatSelect.value;
+	    const useAdvanced = toggleAdvancedOptions.checked;
+	    const quality = parseInt(imageQualityInput.value) || 92;
+	    const selectedResizeMode = resizeMode.value;
+	    const aspectRatio = document.getElementById('aspectRatio').value;
+
+	    let targetWidth, targetHeight;
+
+	    if (useAdvanced) {
+	        if (selectedResizeMode === 'Pixel') {
+	            targetWidth = parseInt(document.getElementById('resizeWidth').value);
+	            targetHeight = parseInt(document.getElementById('resizeHeight').value);
+
+	            if (!targetWidth || !targetHeight || isNaN(targetWidth) || isNaN(targetHeight)) {
+	                return Swal.fire({
+	                    icon: 'warning',
+	                    title: 'Invalid Dimensions',
+	                    text: 'Please enter valid width and height.',
+	                    confirmButtonText: 'OK',
+	                    customClass: {
+	                        confirmButton: 'btn btn-dark'
+	                    },
+	                    buttonsStyling: false,
+	                    allowOutsideClick: false
+	                });
+	            }
+	        } else if (selectedResizeMode === 'ratio') {
+	            if (!aspectRatio || !aspectRatio.includes(':')) {
+	                return Swal.fire({
+	                    icon: 'warning',
+	                    title: 'Invalid Aspect Ratio',
+	                    text: 'Please enter a valid aspect ratio (e.g., 16:9)',
+	                    confirmButtonText: 'OK',
+	                    customClass: {
+	                        confirmButton: 'btn btn-dark'
+	                    },
+	                    buttonsStyling: false,
+	                    allowOutsideClick: false
+	                });
+	            }
+	        }
+	    }
+
+	    const batchSize = 100;
+
+	    for (let i = 0; i < files.length; i += batchSize) {
+	        const batch = Array.from(files).slice(i, i + batchSize);
+	        await processBatch(batch, zip, files.length, format, quality, useAdvanced, selectedResizeMode, aspectRatio, targetWidth, targetHeight);
+	    }
+
+	    downloadAllBtn.classList.remove('d-none');
+	    downloadAllBtn.onclick = () => {
+	        zip.generateAsync({ type: 'blob' }).then((content) => {
+	            const a = document.createElement('a');
+	            a.href = URL.createObjectURL(content);
+	            a.download = 'converted_images.zip';
+	            a.click();
+	        });
+	    };
+	});
+
+	// Fungsi untuk memproses batch gambar
+	async function processBatch(batch, zip, totalFiles, format, quality, useAdvanced, selectedResizeMode, aspectRatio, targetWidth, targetHeight) {
+	    for (const file of batch) {
+	        const imgURL = URL.createObjectURL(file);
+	        const img = new Image();
+
+	        await new Promise((resolve) => {
+	            img.onload = () => {
+	                let finalWidth = img.width;
+	                let finalHeight = img.height;
+
+	                if (useAdvanced) {
+	                    if (selectedResizeMode === 'ratio' && aspectRatio) {
+	                        const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
+	                        finalWidth = Math.min(img.width, img.height * ratioW / ratioH);
+	                        finalHeight = Math.min(img.height, img.width * ratioH / ratioW);
+	                    } else if (selectedResizeMode === 'Pixel') {
+	                        finalWidth = targetWidth;
+	                        finalHeight = targetHeight;
+	                    }
+	                }
+
+	                if (!finalWidth || !finalHeight || isNaN(finalWidth) || isNaN(finalHeight)) {
+	                    return Swal.fire({
+	                        icon: 'warning',
+	                        title: 'Invalid Resize Dimensions',
+	                        text: 'Please check your input for resize dimensions.',
+	                        confirmButtonText: 'OK',
+	                        customClass: {
+	                            confirmButton: 'btn btn-dark'
+	                        },
+	                        buttonsStyling: false,
+	                        allowOutsideClick: false
+	                    });
+	                }
+
+	                const canvas = document.createElement('canvas');
+	                canvas.width = finalWidth;
+	                canvas.height = finalHeight;
+	                const ctx = canvas.getContext('2d');
+	                ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+
+	                // Menggunakan kualitas untuk menurunkan ukuran file
+	                canvas.toBlob((blob) => {
+	                    if (!blob) {
+	                        console.error('Failed to create blob from canvas');
+	                        resolve();
+	                        return;
+	                    }
+	                    processFinalBlob(blob, file, format, zip, totalFiles);
+	                    resolve();
+	                }, format, quality / 100); // Menurunkan kualitas gambar
+	            };
+	            img.src = imgURL;
+	        });
+	    }
+	}
+</script>
+
+</body>
+
+</html>
