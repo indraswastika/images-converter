@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+html<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Database Indonesia</title>
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
-	 <link href="assets/css/sweetalert2.min.css" rel="stylesheet">
+    <link href="assets/css/sweetalert2.min.css" rel="stylesheet">
 
     <style>
         .preview-container {
@@ -52,7 +52,7 @@
                 padding-left: 1rem;
                 overflow-y: auto;
                 visibility: hidden;
-                background-color: #343a40;
+                background-color: \#343a40;
                 transition: transform .3s ease-in-out, visibility .3s ease-in-out;
             }
 
@@ -85,16 +85,16 @@
             padding-top: .75rem;
             padding-bottom: .75rem;
             font-size: .875rem;
-            color: #6c757d;
+            color: \#6c757d;
         }
 
         .nav-underline .nav-link:hover {
-            color: #007bff;
+            color: \#007bff;
         }
 
         .nav-underline .active {
             font-weight: 500;
-            color: #343a40;
+            color: \#343a40;
         }
 
         .text-white-50 {
@@ -117,11 +117,10 @@
             border-radius: 0;
         }
 
-		#previewContainer {
-		    max-height: 500px;
-		    overflow-y: auto;
-		}
-
+        \#previewContainer {
+            max-height: 500px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 
@@ -154,30 +153,28 @@
                         </button>
                     </div>
                     <div class="row" id="previewContainer"></div>
-
                 </div>
             </div>
         </div>
 
-      <div class="row p-3">
-          <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
-              <div class="card-body">
-                  <table id="resultTable" class="table table-bordered table-striped" style="display: none;">
-                      <thead>
-                          <tr>
-                              <th>Provinsi</th>
-                              <th>Kota/Kab</th>
-                              <th>Kecamatan</th>
-                              <th>Desa/Kelurahan</th>
-                              <th>Kode Pos</th>
-                          </tr>
-                      </thead>
-                      <tbody></tbody>
-                  </table>
-              </div>
-          </div>
-      </div>
-      
+        <div class="row p-3">
+            <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
+                <div class="card-body">
+                    <table id="resultTable" class="table table-bordered table-striped" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Provinsi</th>
+                                <th>Kota/Kab</th>
+                                <th>Kecamatan</th>
+                                <th>Desa/Kelurahan</th>
+                                <th>Kode Pos</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
     <canvas id="canvas"></canvas>
     <script src="assets/js/jquery-3.7.1.min.js"></script>
@@ -186,56 +183,68 @@
     <script src="assets/js/bootstrap.bundle.min.js"></script>
 
     <script>
-    $(document).ready(function () {
-        let database = [];
+        $(document).ready(function () {
+            let database = [];
 
-        $.getJSON('database-indonesia.json', function (data) {
-            database = data;
-        });
+            $.getJSON('database-indonesia.json', function (data) {
+                database = data;
+            });
 
-        $('#searchButton').click(function () {
-            const query = $('#searchInput').val().toLowerCase().trim();
+            $('#searchButton').click(function () {
+                const query = $('#searchInput').val().toLowerCase().trim();
 
-            $('#searchButton').prop('disabled', true);
-
-            setTimeout(() => {
-                const results = database.filter(item => {
-                    return (
-                        item.PROVINSI.toLowerCase().includes(query) ||
-                        item.KOTA_KAB.toLowerCase().includes(query) ||
-                        item.KECAMATAN.toLowerCase().includes(query) ||
-                        item.KELURAHAN.toLowerCase().includes(query) ||
-                        item.KODE_POS.toString().includes(query)
-                    );
+                Swal.fire({
+                    title: 'Loading...',
+                    text: 'Sedang mencari data, harap tunggu.',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    willOpen: () => {
+                        Swal.showLoading();
+                    }
                 });
 
-                const $table = $('#resultTable');
-                const $tbody = $table.find('tbody');
-                $tbody.empty();
+                $('#searchButton').prop('disabled', true);
 
-                if (results.length > 0) {
-                    results.forEach(result => {
-                        const row = `
-                                    <tr>
-                                        <td>${result.PROVINSI}</td>
-                                        <td>${result.KOTA_KAB}</td>
-                                        <td>${result.KECAMATAN}</td>
-                                        <td>${result.KELURAHAN}</td>
-                                        <td>${result.KODE_POS}</td>
-                                    </tr>
-                                  `;
-                        $tbody.append(row);
+                setTimeout(() => {
+                    const results = database.filter(item => {
+                        return (
+                            item.PROVINSI.toLowerCase().includes(query) ||
+                            item.KOTA_KAB.toLowerCase().includes(query) ||
+                            item.KECAMATAN.toLowerCase().includes(query) ||
+                            item.KELURAHAN.toLowerCase().includes(query) ||
+                            item.KODE_POS.toString().includes(query)
+                        );
                     });
-                    $table.show();
-              } else {
-                $table.hide();
-              }
 
-              $('#searchButton').prop('disabled', false);
-            }, 1000);
+                    const $table = $('#resultTable');
+                    const $tbody = $table.find('tbody');
+                    $tbody.empty();
+
+                    if (results.length > 0) {
+                        results.forEach(result => {
+                            const row = `
+                                <tr>
+                                    <td>${result.PROVINSI}</td>
+                                    <td>${result.KOTA_KAB}</td>
+                                    <td>${result.KECAMATAN}</td>
+                                    <td>${result.KELURAHAN}</td>
+                                    <td>${result.KODE_POS}</td>
+                                </tr>
+                            `;
+                            $tbody.append(row);
+                        });
+                        $table.show();
+                    } else {
+                        $table.hide();
+                    }
+
+                    Swal.close();
+
+                    $('#searchButton').prop('disabled', false);
+                }, 1000);
+            });
         });
-    });
-  </script>
+    </script>
 
 </body>
 
