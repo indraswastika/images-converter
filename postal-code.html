@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Database Indonesia</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+	 <link href="assets/css/sweetalert2.min.css" rel="stylesheet">
+
+    <style>
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .preview-box {
+            text-align: center;
+            max-width: 150px;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        html,
+        body {
+            overflow-x: hidden;
+        }
+
+        body {
+            padding-top: 56px;
+        }
+
+        @media (max-width: 991.98px) {
+            .offcanvas-collapse {
+                position: fixed;
+                top: 56px;
+                bottom: 0;
+                left: 100%;
+                width: 100%;
+                padding-right: 1rem;
+                padding-left: 1rem;
+                overflow-y: auto;
+                visibility: hidden;
+                background-color: #343a40;
+                transition: transform .3s ease-in-out, visibility .3s ease-in-out;
+            }
+
+            .offcanvas-collapse.open {
+                visibility: visible;
+                transform: translateX(-100%);
+            }
+        }
+
+        .nav-scroller {
+            position: relative;
+            z-index: 2;
+            height: 2.75rem;
+            overflow-y: hidden;
+        }
+
+        .nav-scroller .nav {
+            display: flex;
+            flex-wrap: nowrap;
+            padding-bottom: 1rem;
+            margin-top: -1px;
+            overflow-x: auto;
+            color: rgba(255, 255, 255, .75);
+            text-align: center;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-underline .nav-link {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: .875rem;
+            color: #6c757d;
+        }
+
+        .nav-underline .nav-link:hover {
+            color: #007bff;
+        }
+
+        .nav-underline .active {
+            font-weight: 500;
+            color: #343a40;
+        }
+
+        .text-white-50 {
+            color: rgba(255, 255, 255, .5);
+        }
+
+        .card {
+            background-color: transparent !important;
+        }
+
+        .btn {
+            border-radius: 0;
+        }
+
+        .form-control {
+            border-radius: 0;
+        }
+
+        .form-select {
+            border-radius: 0;
+        }
+
+		#previewContainer {
+		    max-height: 500px;
+		    overflow-y: auto;
+		}
+
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark" aria-label="Main navigation">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="">INDRAGTG</a>
+        </div>
+    </nav>
+
+    <div class="nav-scroller bg-body shadow-sm">
+        <nav class="nav nav-underline" aria-label="Secondary navigation">
+            <a class="nav-link active" aria-current="page" href="index.html">Convert Format</a>
+            <a class="nav-link" aria-current="page" href="/postal-code.html">Database Indonesia</a>
+        </nav>
+    </div>
+
+    <main class="container mt-5">
+        <div class="row p-3">
+            <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="searchInput" class="form-label">Masukkan Kode Pos / Kecamatan / Kelurahan / Provinsi / Kota / Kabupaten</label>
+                        <input type="text" class="form-control" id="searchInput" required>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-dark" id="searchButton">
+                            <span id="BtnText">Search</span>
+                        </button>
+                    </div>
+                    <div class="row" id="previewContainer"></div>
+
+                </div>
+            </div>
+        </div>
+
+      <div class="row p-3">
+          <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
+              <div class="card-body">
+                  <table id="resultTable" class="table table-bordered table-striped" style="display: none;">
+                      <thead>
+                          <tr>
+                              <th>Provinsi</th>
+                              <th>Kota/Kab</th>
+                              <th>Kecamatan</th>
+                              <th>Desa/Kelurahan</th>
+                              <th>Kode Pos</th>
+                          </tr>
+                      </thead>
+                      <tbody></tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+      
+    </main>
+    <canvas id="canvas"></canvas>
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script src="assets/js/jszip.min.js"></script>
+    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    $(document).ready(function () {
+        let database = [];
+
+        $.getJSON('database-indonesia.json', function (data) {
+            database = data;
+        });
+
+        $('#searchButton').click(function () {
+            const query = $('#searchInput').val().toLowerCase().trim();
+
+            $('#searchButton').prop('disabled', true);
+
+            setTimeout(() => {
+                const results = database.filter(item => {
+                    return (
+                        item.PROVINSI.toLowerCase().includes(query) ||
+                        item.KOTA_KAB.toLowerCase().includes(query) ||
+                        item.KECAMATAN.toLowerCase().includes(query) ||
+                        item.KELURAHAN.toLowerCase().includes(query) ||
+                        item.KODE_POS.toString().includes(query)
+                    );
+                });
+
+                const $table = $('#resultTable');
+                const $tbody = $table.find('tbody');
+                $tbody.empty();
+
+                if (results.length > 0) {
+                    results.forEach(result => {
+                        const row = `
+                                    <tr>
+                                        <td>${result.PROVINSI}</td>
+                                        <td>${result.KOTA_KAB}</td>
+                                        <td>${result.KECAMATAN}</td>
+                                        <td>${result.KELURAHAN}</td>
+                                        <td>${result.KODE_POS}</td>
+                                    </tr>
+                                  `;
+                        $tbody.append(row);
+                    });
+                    $table.show();
+              } else {
+                $table.hide();
+              }
+
+              $('#searchButton').prop('disabled', false);
+            }, 1000);
+        });
+    });
+  </script>
+
+</body>
+
+</html>
