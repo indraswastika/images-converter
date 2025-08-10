@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bulk Image Tools - Duplicate</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .preview-box {
+            text-align: center;
+            max-width: 150px;
+        }
+        .preview-box img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 5px;
+        }
+        canvas {
+            display: none;
+        }
+        html, body {
+            overflow-x: hidden;
+        }
+        body {
+            padding-top: 56px;
+        }
+        @media (max-width: 991.98px) {
+            .offcanvas-collapse {
+                position: fixed;
+                top: 56px;
+                bottom: 0;
+                left: 100%;
+                width: 100%;
+                padding-right: 1rem;
+                padding-left: 1rem;
+                overflow-y: auto;
+                visibility: hidden;
+                background-color: #343a40;
+                transition: transform .3s ease-in-out, visibility .3s ease-in-out;
+            }
+            .offcanvas-collapse.open {
+                visibility: visible;
+                transform: translateX(-100%);
+            }
+        }
+        .nav-scroller {
+            position: relative;
+            z-index: 2;
+            height: 2.75rem;
+            overflow-y: hidden;
+        }
+        .nav-scroller .nav {
+            display: flex;
+            flex-wrap: nowrap;
+            padding-bottom: 1rem;
+            margin-top: -1px;
+            overflow-x: auto;
+            color: rgba(255, 255, 255, .75);
+            text-align: center;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        .nav-underline .nav-link {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: .875rem;
+            color: #6c757d;
+        }
+        .nav-underline .nav-link:hover {
+            color: #007bff;
+        }
+        .nav-underline .active {
+            font-weight: 500;
+            color: #343a40;
+        }
+        .text-white-50 {
+            color: rgba(255, 255, 255, .5);
+        }
+        .card {
+            background-color: transparent !important;
+        }
+        .btn {
+            border-radius: 0;
+        }
+        .form-control {
+            border-radius: 0;
+        }
+        .form-select {
+            border-radius: 0;
+        }
+        #previewContainer {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg fixed-top navbar-dark bg-dark" aria-label="Main navigation">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">INDRAGTG</a>
+        </div>
+    </nav>
+    <div class="nav-scroller bg-body shadow-sm">
+        <nav class="nav nav-underline" aria-label="Secondary navigation">
+            <a class="nav-link" href="index.html">Convert Format</a>
+            <a class="nav-link" href="postal-code.html">Database Indonesia</a>
+            <a class="nav-link" href="url-opener.html">Open Multiple URL</a>
+            <a class="nav-link" href="duplicate-images.html">Duplicate Images</a>
+        </nav>
+    </div>
+
+    <main class="container mt-5">
+        <div class="row p-3">
+            <div class="card my-3 p-4 bg-transparent shadow-sm" style="border-radius: 0;">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="imageInput" class="form-label">Upload One Image</label>
+                        <input type="file" class="form-control" id="imageInput" accept="image/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="copyCount" class="form-label">Number of Copies</label>
+                        <input type="number" class="form-control" id="copyCount" min="1" value="1">
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-dark" id="convertBtn">
+                            <span id="convertBtnText">Duplicate</span>
+                        </button>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button id="downloadAllBtn" class="btn btn-secondary d-none">Download All</button>
+                    </div>
+
+                    <div class="progress mb-3 d-none" id="progressWrapper">
+                        <div id="progressBar" class="progress-bar bg-dark" role="progressbar" style="width: 0%; border-radius: 0;">0%</div>
+                    </div>
+
+                    <div class="row" id="previewContainer"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <script src="assets/js/jszip.min.js"></script>
+    <script src="assets/js/sweetalert2.all.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const copyCountInput = document.getElementById('copyCount');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const previewContainer = document.getElementById('previewContainer');
+        const progressWrapper = document.getElementById('progressWrapper');
+        const progressBar = document.getElementById('progressBar');
+
+        let convertedImages = [];
+
+        convertBtn.addEventListener('click', async () => {
+            const files = imageInput.files;
+            const copyCount = parseInt(copyCountInput.value);
+
+            if (files.length === 0) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'No Image Selected',
+                    text: 'Please select an image first.',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-dark' },
+                    buttonsStyling: false,
+                    allowOutsideClick: false
+                });
+            }
+
+            if (isNaN(copyCount) || copyCount <= 0) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Count',
+                    text: 'Please enter a number greater than 0.',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-dark' },
+                    buttonsStyling: false,
+                    allowOutsideClick: false
+                });
+            }
+
+            convertedImages = [];
+            previewContainer.innerHTML = '';
+            progressWrapper.classList.remove('d-none');
+            progressBar.style.width = '0%';
+            progressBar.innerText = '0%';
+            downloadAllBtn.classList.add('d-none');
+
+            const file = files[0];
+            const originalBlob = new Blob([await file.arrayBuffer()], { type: file.type });
+            const fileExtension = file.name.split('.').pop();
+            const zip = new JSZip();
+
+            for (let i = 1; i <= copyCount; i++) {
+                const outputName = `${i}.${fileExtension}`;
+                zip.file(outputName, originalBlob);
+                
+                const thumb = document.createElement('div');
+                thumb.classList.add('col-md-2', 'mb-3', 'preview-box');
+                
+                const imgElem = document.createElement('img');
+                imgElem.src = URL.createObjectURL(originalBlob);
+                imgElem.classList.add('img-fluid', 'border');
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn btn-sm btn-outline-dark mt-2';
+                downloadBtn.textContent = 'Download';
+                downloadBtn.onclick = () => {
+                    const link = document.createElement('a');
+                    link.href = imgElem.src;
+                    link.download = outputName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+                
+                thumb.appendChild(imgElem);
+                thumb.appendChild(downloadBtn);
+                previewContainer.appendChild(thumb);
+                
+                convertedImages.push({ name: outputName, blob: originalBlob });
+                
+                const progress = Math.round((convertedImages.length / copyCount) * 100);
+                progressBar.style.width = `${progress}%`;
+                progressBar.innerText = `${convertedImages.length}/${copyCount}`;
+            }
+
+            if (convertedImages.length === copyCount) {
+                downloadAllBtn.classList.remove('d-none');
+            }
+
+            downloadAllBtn.onclick = () => {
+                zip.generateAsync({ type: 'blob' }).then((content) => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(content);
+                    a.download = 'duplicated_images.zip';
+                    a.click();
+                });
+            };
+        });
+    </script>
+</body>
+</html>
