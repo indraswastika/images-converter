@@ -113,7 +113,6 @@
             <a class="nav-link" href="postal-code.html">Database Indonesia</a>
             <a class="nav-link" href="url-opener.html">Open Multiple URL</a>
             <a class="nav-link" href="duplicate-images.html">Duplicate Images</a>
-            <a class="nav-link" href="compress-pdf.html">Compress PDF</a>
         </nav>
     </div>
 
@@ -124,6 +123,11 @@
                     <div class="mb-3">
                         <label for="fileInput" class="form-label">Upload PDF Files</label>
                         <input type="file" class="form-control" id="fileInput" multiple accept=".pdf">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="compressionLevel" class="form-label">Compression Level (0-100)</label>
+                        <input type="number" class="form-control" id="compressionLevel" min="0" max="100" value="75">
                     </div>
 
                     <div class="d-grid mb-3">
@@ -153,6 +157,7 @@
     
     <script>
         const fileInput = document.getElementById('fileInput');
+        const compressionLevelInput = document.getElementById('compressionLevel');
         const convertBtn = document.getElementById('convertBtn');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const previewContainer = document.getElementById('previewContainer');
@@ -183,12 +188,14 @@
             downloadAllBtn.classList.add('d-none');
 
             const zip = new JSZip();
+            const compressionLevel = parseInt(compressionLevelInput.value);
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 try {
                     const originalBytes = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(originalBytes, { ignoreEncryption: true });
+                    
                     const compressedBytes = await pdfDoc.save();
 
                     const originalSize = originalBytes.byteLength;
@@ -249,7 +256,7 @@
                 zip.generateAsync({ type: 'blob' }).then((content) => {
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(content);
-                    a.download = 'compressed_pdfs.zip';
+                    a.download = `compressed_pdfs_${compressionLevel}.zip`;
                     a.click();
                 });
             };
