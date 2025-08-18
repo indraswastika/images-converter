@@ -125,14 +125,14 @@
                         <input type="file" class="form-control" id="fileInput" multiple accept=".pdf">
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="compressionLevel" class="form-label">Compression Level (0-100)</label>
-                        <input type="number" class="form-control" id="compressionLevel" min="0" max="100" value="75">
-                    </div>
-
                     <div class="d-grid mb-3">
                         <button class="btn btn-dark" id="convertBtn">
                             <span id="convertBtnText">Compress All</span>
+                        </button>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button class="btn btn-dark" id="aggressiveBtn">
+                            <span id="aggressiveBtnText">Aggressive Compress</span>
                         </button>
                     </div>
                     <div class="d-grid mb-3">
@@ -157,8 +157,8 @@
     
     <script>
         const fileInput = document.getElementById('fileInput');
-        const compressionLevelInput = document.getElementById('compressionLevel');
         const convertBtn = document.getElementById('convertBtn');
+        const aggressiveBtn = document.getElementById('aggressiveBtn');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const previewContainer = document.getElementById('previewContainer');
         const progressWrapper = document.getElementById('progressWrapper');
@@ -166,20 +166,7 @@
 
         let compressedFiles = [];
 
-        convertBtn.addEventListener('click', async () => {
-            const files = fileInput.files;
-            if (!files.length) {
-                return Swal.fire({
-                    icon: 'warning',
-                    title: 'No Files Selected',
-                    text: 'Please select PDF files first.',
-                    confirmButtonText: 'OK',
-                    customClass: { confirmButton: 'btn btn-dark' },
-                    buttonsStyling: false,
-                    allowOutsideClick: false
-                });
-            }
-
+        async function processFiles(files, isAggressive) {
             compressedFiles = [];
             previewContainer.innerHTML = '';
             progressWrapper.classList.remove('d-none');
@@ -188,7 +175,6 @@
             downloadAllBtn.classList.add('d-none');
 
             const zip = new JSZip();
-            const compressionLevel = parseInt(compressionLevelInput.value);
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -196,7 +182,13 @@
                     const originalBytes = await file.arrayBuffer();
                     const pdfDoc = await PDFLib.PDFDocument.load(originalBytes, { ignoreEncryption: true });
                     
-                    const compressedBytes = await pdfDoc.save();
+                    let compressedBytes;
+
+                    if (isAggressive) {
+                        compressedBytes = await pdfDoc.save({ useFlateCompression: true });
+                    } else {
+                        compressedBytes = await pdfDoc.save();
+                    }
 
                     const originalSize = originalBytes.byteLength;
                     const compressedSize = compressedBytes.length;
@@ -256,10 +248,42 @@
                 zip.generateAsync({ type: 'blob' }).then((content) => {
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(content);
-                    a.download = `compressed_pdfs_${compressionLevel}.zip`;
+                    a.download = 'compressed_pdfs.zip';
                     a.click();
                 });
             };
+        }
+
+        convertBtn.addEventListener('click', () => {
+            const files = fileInput.files;
+            if (!files.length) {
+                 return Swal.fire({
+                    icon: 'warning',
+                    title: 'No Files Selected',
+                    text: 'Please select PDF files first.',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-dark' },
+                    buttonsStyling: false,
+                    allowOutsideClick: false
+                });
+            }
+            processFiles(files, false);
+        });
+
+        aggressiveBtn.addEventListener('click', () => {
+            const files = fileInput.files;
+            if (!files.length) {
+                 return Swal.fire({
+                    icon: 'warning',
+                    title: 'No Files Selected',
+                    text: 'Please select PDF files first.',
+                    confirmButtonText: 'OK',
+                    customClass: { confirmButton: 'btn btn-dark' },
+                    buttonsStyling: false,
+                    allowOutsideClick: false
+                });
+            }
+            processFiles(files, true);
         });
     </script>
 </body>
